@@ -29,7 +29,7 @@ I have implemented behavior planning in following steps:-
 4.  If there is no vehicle in next 30 mtrs in both left and right lane, so in that case we see the speed of vehicles on these lane and based on that we decide which lane to choose. Here I am choosing the fast moving lane as it is the better option and less prone to accident.
 5.  If no option for lane change then reduce the speed of the car to avoid collision.
 
-#### ### Trajectory Generation
+#### Trajectory Generation
 To compute the trajectory we use car speed, the speed of the surrounding cars, current lane, intended lane and previous points. For making trajectory smoother we add immediate two points from the previous trajectory. If there are no previous points then we use yaw rate and current car coordinates to compute previous points. After this we add evenly 30m spaced points ahead of the starting reference in frenet coordinates. To make mathematics bit easier we shift all the points car coordinate system and after processing, we convert them back to map coordinate system before passing those to the car.
 ```
 vector<double> next_wp0 =  getXY(car_s+30,(2+4*lane),map_waypoints_s, map_waypoints_x,map_waypoints_y);
