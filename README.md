@@ -1,5 +1,78 @@
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
+
+## Rubrics
+
+### Compilation
+Code must compile without errors with `cmake` and make.
+
+### Valid Trajectories
+-   **The code compiles correctly :-** The code compiled successfully. I used `spline` for smoothening of the generated way points and the `spline.h` is included in `src` folder of the project directory.
+-   **The car is able to drive at least 4.32 miles without incident :-** The car is able to drive across the highway easily. I tested it for 12 miles.
+-   **The car drives according to the speed limit :-** The car drove within the speed limit of around 49.5 mph. 
+-  **Max Acceleration and Jerk are not Exceeded :-** There was not an incident in entire 12 miles that I watched. 
+-   **Car does not have collisions :-** There was not an incident in entire 12 miles that I watched.
+-   **The car stays in its lane, except for the time between changing lanes :-** The car stays inside the lane for whole time except for the time between changing lanes. 
+-   **The car is able to change lanes smoothly :-** During lane change the car reduces its speed to make a smooth transition from source to destination lane.
+
+### Reflection
+
+#### Prediction
+The simulator sends a number of things like Car's location, velocity, yaw rate, speed, `frenet` coordinates and sensor fusion data. By using these values we predict the behavior of other objects in our case it is vehicles in future and we plan behavior of our car based on the behavior of the nearby objects. To fit the polynomial(path coordinates) in the implementation of this project I used `splin` library. We learned about jerk minimization by using polynomial fitting in our classroom but `splin.h` fits polynomial smoothly and it is well-proven library so I preferred to use this.
+
+#### Behavior Planning
+I have implemented behavior planning in following steps:-
+
+1.  Check if there is any car in our path or not in next 30 mtrs.
+2.  If a car is present 30 m ahead and it is slow moving try to change the lane.
+3.  For changing lane first check for both the side lanes(if the car is in middle lane) for if there is no vehicle in near proximity from a current location of the car(i.e 30 m ahead and 15 m behind the car).
+4.  If there is no vehicle in next 30 mtrs in both left and right lane, so in that case we see the speed of vehicles on these lane and based on that we decide which lane to choose. Here I am choosing the fast moving lane as it is the better option and less prone to accident.
+5.  If no option for lane change then reduce the speed of the car to avoid collision.
+
+#### ### Trajectory Generation
+To compute the trajectory we use car speed, the speed of the surrounding cars, current lane, intended lane and previous points. For making trajectory smoother we add immediate two points from the previous trajectory. If there are no previous points then we use yaw rate and current car coordinates to compute previous points. After this we add evenly 30m spaced points ahead of the starting reference in frenet coordinates. To make mathematics bit easier we shift all the points car coordinate system and after processing, we convert them back to map coordinate system before passing those to the car.
+```
+vector<double> next_wp0 =  getXY(car_s+30,(2+4*lane),map_waypoints_s, map_waypoints_x,map_waypoints_y);
+vector<double> next_wp1 =  getXY(car_s+60,(2+4*lane),map_waypoints_s, map_waypoints_x,map_waypoints_y);
+vector<double> next_wp2 =  getXY(car_s+90,(2+4*lane),map_waypoints_s, map_waypoints_x,map_waypoints_y);
+```
+
+We add these points to the list of x and y points. After this, we transform the coordinates such that our car is at (0,0) with a heading of 0 degrees.
+
+```
+for(int i=0; i<ptsx.size(); i++){
+	double shift_x = ptsx[i] - ref_x;
+	double shift_y = ptsy[i] - ref_y;
+	
+	ptsx[i] = (shift_x*cos(0-ref_yaw)-shift_y*sin(0-ref_yaw));
+	ptsy[i] = (shift_x*sin(0-ref_yaw)+ shift_y*cos(0-ref_yaw));
+}
+```
+
+Then we fit a spline onto these points and convert the points that are lying on the spline as the points the car should follow.
+
+Code to switch lanes:
+``` 
+if(too_close ==  true){
+	ref_vel -= .224;
+	if(left_lane_occupied!=true  && right_lane_occupied!=true  && lane==1){
+		if(left_lane_vehicle_speed>right_lane_vehicle_speed){
+			lane-=1;
+		}else{
+			lane+=1;
+		}
+	}else  if(left_lane_occupied!=true  && lane>0){
+		// switch to left lane
+		lane-=1;
+	}else  if(right_lane_occupied !=  true  && lane<2){
+		// switch to right lane
+		lane+=1;
+	}
+}else  if(ref_vel<49.5){
+	ref_vel+=.224;
+}
+```
+
    
 ### Simulator.
 You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases/tag/T3_v1.2).
